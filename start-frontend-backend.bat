@@ -22,7 +22,7 @@ start "Backend - Flask" cmd /k "cd /d ""%ROOT%Backend"" && %PY_CMD% app.py"
 REM Small delay so backend has a head start.
 timeout /t 2 >nul
 
-start "Frontend - Electron" cmd /k "cd /d ""%ROOT%electron"" && npm start"
+start "Frontend - Electron" cmd /k "cd /d ""%ROOT%Frontend"" && npm start"
 
 echo Done. Two terminal windows were opened.
 endlocal
