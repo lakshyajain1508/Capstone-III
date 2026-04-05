@@ -2,16 +2,182 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Energy Aware CPU Scheduling - a modern CPU scheduling simulator and energy optimization dashboard."
-    />
     <title>Energy Aware CPU Scheduling</title>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <div class="app-shell fade-in">
+      <header class="topbar glass">
+        <div class="window-dots" aria-hidden="true">
+          
+        </div>
+        <h1>Energy Aware CPU Scheduling</h1>
+        <div class="topbar-actions">
+          <button id="openConnectionStatus" type="button" class="status-link-btn">Connection Status</button>
+        </div>
+      </header>
+
+      <div id="apiError" class="api-error hidden" role="alert">
+        Backend not reachable. Start Flask server at http://localhost:5000.
+      </div>
+
+      <main class="dashboard">
+        <section class="panel glass cpu-monitor">
+          <div class="panel-head">
+            <h2>CPU Monitor</h2>
+            <span id="cpuStatus" class="status-pill">Healthy</span>
+          </div>
+          <div class="cpu-summary">
+            <div>
+              <p class="label">CPU Usage</p>
+              <p id="cpuUsage" class="big-number">0%</p>
+            </div>
+            <div>
+              <p class="label">Frequency</p>
+              <p id="cpuFrequency" class="sub-number">0.00 GHz</p>
+            </div>
+          </div>
+          <div id="coreBars" class="core-bars"></div>
+          <div class="chart-wrap chart-inline">
+            <canvas id="cpuLineChart" width="600" height="180" aria-label="CPU usage chart"></canvas>
+          </div>
+        </section>
+
+        <section class="panel glass process-panel">
+          <div class="panel-head">
+            <h2>Processes</h2>
+            <span class="muted">Top Active</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>PID</th>
+                  <th>Name</th>
+                  <th>CPU %</th>
+                  <th>Energy</th>
+                </tr>
+              </thead>
+              <tbody id="processBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel glass energy-panel">
+          <div class="panel-head">
+            <h2>Energy Panel</h2>
+            <span class="muted">Live Estimate</span>
+          </div>
+          <div class="energy-cards">
+            <article class="energy-card">
+              <p class="icon">⚡</p>
+              <p class="label">Total Energy</p>
+              <p id="totalEnergy" class="card-value">0.00 units</p>
+            </article>
+            <article class="energy-card">
+              <p class="icon">🧠</p>
+              <p class="label">Energy / Process</p>
+              <p id="energyPerProcess" class="card-value">0.00 units</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel glass scheduler-panel">
+          <div class="panel-head">
+            <h2>Algorithm Selector</h2>
+            <span class="muted">Segmented Control</span>
+          </div>
+          <div id="algorithmControl" class="segmented" role="tablist" aria-label="Scheduling algorithm">
+            <button class="segment active" data-algorithm="FCFS">FCFS</button>
+            <button class="segment" data-algorithm="SJF">SJF</button>
+            <button class="segment" data-algorithm="Round Robin">Round Robin</button>
+            <button class="segment" data-algorithm="Energy Aware">Energy Aware</button>
+          </div>
+          <button id="runBtn" class="run-btn">Run Scheduling Simulation</button>
+          <p id="simulationStatus" class="muted run-status">Waiting for simulation...</p>
+        </section>
+
+        <section class="panel glass gantt-panel">
+          <div class="panel-head">
+            <h2>Gantt Chart</h2>
+            <span id="activeAlgorithm" class="muted">FCFS</span>
+          </div>
+          <div id="ganttChart" class="gantt-track"></div>
+        </section>
+
+        <section class="panel glass metrics-panel">
+          <div class="panel-head">
+            <h2>Metrics</h2>
+            <span class="muted">Simulation Output</span>
+          </div>
+          <div class="metrics-grid">
+            <article class="metric-card">
+              <p class="label">Average Waiting Time</p>
+              <p id="waitingTime" class="metric-value">0.00 ms</p>
+            </article>
+            <article class="metric-card">
+              <p class="label">Turnaround Time</p>
+              <p id="turnaroundTime" class="metric-value">0.00 ms</p>
+            </article>
+            <article class="metric-card">
+              <p class="label">CPU Utilization</p>
+              <p id="utilization" class="metric-value">0%</p>
+            </article>
+            <article class="metric-card">
+              <p class="label">Energy Consumption</p>
+              <p id="energyConsumption" class="metric-value">0.00 units</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel glass comparison-panel">
+          <div class="panel-head">
+            <h2>Algorithm Comparison</h2>
+            <span class="muted">Best highlighted</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Algorithm</th>
+                  <th>Waiting Time</th>
+                  <th>Turnaround</th>
+                  <th>Energy</th>
+                </tr>
+              </thead>
+              <tbody id="comparisonBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel glass charts-panel">
+          <div class="panel-head">
+            <h2>Visual Analytics</h2>
+            <span class="muted">Live + simulation charts</span>
+          </div>
+          <div class="charts-grid">
+            <div class="chart-wrap">
+              <p class="label">Energy Comparison</p>
+              <canvas id="energyBarChart" width="580" height="220" aria-label="Energy comparison chart"></canvas>
+            </div>
+            <div class="chart-wrap">
+              <p class="label">Algorithm Performance</p>
+              <canvas id="performanceBarChart" width="580" height="220" aria-label="Algorithm performance chart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel glass analysis-panel">
+          <div class="panel-head">
+            <h2>Process Analysis</h2>
+            <span class="muted">Actionable suggestions</span>
+          </div>
+          <ul id="suggestionsList" class="suggestions-list"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script src="renderer.js"></script>
   </body>
 </html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Backend Connection Status</title>
+    <style>
+      :root {
+        --bg: #f3f6fb;
+        --panel: #ffffff;
+        --text: #1a2433;
+        --muted: #5a6a80;
+        --ok: #138a36;
+        --warn: #d97a00;
+        --err: #c62828;
+        --border: #dce3ef;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: radial-gradient(circle at 15% 15%, #ffffff 0%, var(--bg) 45%, #e8eef8 100%);
+        color: var(--text);
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+
+      .panel {
+        width: min(680px, 100%);
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 16px 40px rgba(22, 36, 60, 0.1);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.5rem;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        margin-bottom: 16px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fbfdff;
+      }
+
+      .label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .value {
+        margin-top: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        word-break: break-word;
+      }
+
+      .ok {
+        color: var(--ok);
+      }
+
+      .warn {
+        color: var(--warn);
+      }
+
+      .err {
+        color: var(--err);
+      }
+
+      .json {
+        margin-top: 8px;
+        background: #0f1725;
+        color: #d5e3ff;
+        border-radius: 12px;
+        padding: 12px;
+        max-height: 220px;
+        overflow: auto;
+        font-size: 0.9rem;
+      }
+
+      button {
+        border: 1px solid #8ca6d5;
+        background: #e9f0fd;
+        color: #15345f;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #dce8ff;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="panel">
+      <h1>Frontend to Backend Connection Check</h1>
+      <p class="subtitle">This page proves Electron frontend can call Flask backend at http://localhost:5000/api/health.</p>
+
+      <div class="grid">
+        <article class="card">
+          <p class="label">Frontend Status</p>
+          <p id="frontendStatus" class="value ok">Loaded</p>
+        </article>
+        <article class="card">
+          <p class="label">Backend Status</p>
+          <p id="backendStatus" class="value warn">Checking...</p>
+        </article>
+        <article class="card">
+          <p class="label">Round Trip</p>
+          <p id="latency" class="value">-</p>
+        </article>
+        <article class="card">
+          <p class="label">Last Checked</p>
+          <p id="lastChecked" class="value">-</p>
+        </article>
+      </div>
+
+      <button id="checkNow" type="button">Check Now</button>
+      <pre id="payload" class="json">Waiting for first response...</pre>
+    </section>
+
+    <script>
+      const HEALTH_URL = 'http://localhost:5000/api/health';
+      const POLL_MS = 3000;
+
+      const backendStatusEl = document.getElementById('backendStatus');
+      const latencyEl = document.getElementById('latency');
+      const lastCheckedEl = document.getElementById('lastChecked');
+      const payloadEl = document.getElementById('payload');
+      const checkNowBtn = document.getElementById('checkNow');
+
+      function setStatus(text, className) {
+        backendStatusEl.textContent = text;
+        backendStatusEl.className = 'value ' + className;
+      }
+
+      async function checkBackend() {
+        const start = performance.now();
+
+        try {
+          const response = await fetch(HEALTH_URL, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          const elapsed = Math.round(performance.now() - start);
+          const data = await response.json();
+
+          latencyEl.textContent = elapsed + ' ms';
+          lastCheckedEl.textContent = new Date().toLocaleTimeString();
+          payloadEl.textContent = JSON.stringify(data, null, 2);
+
+          if (response.ok && data && data.status === 'ok') {
+            setStatus('Connected', 'ok');
+          } else {
+            setStatus('Backend reached, but unhealthy', 'warn');
+          }
+        } catch (error) {
+          latencyEl.textContent = '-';
+          lastCheckedEl.textContent = new Date().toLocaleTimeString();
+          payloadEl.textContent = 'Connection error: ' + error.message;
+          setStatus('Not reachable', 'err');
+        }
+      }
+
+      checkNowBtn.addEventListener('click', checkBackend);
+      checkBackend();
+      setInterval(checkBackend, POLL_MS);
+    </script>
+  </body>
+</html>
